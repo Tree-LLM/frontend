@@ -35,21 +35,6 @@
 * **Bundler**: Vite
 * **Routing**: React Router DOM
 
-## 📂 Folder Structure (Simplified)
-
-```
-src/
-├── components/
-│   ├── Header.tsx
-│   ├── FileSidebar.tsx
-│   └── EditorPanel.tsx
-├── pages/
-│   ├── EditorPage.tsx
-│   └── ChatPage.tsx
-├── App.tsx
-└── main.tsx
-```
-
 ## 🚀 How to Run
 
 ```bash
