@@ -1,69 +1,73 @@
-# React + TypeScript + Vite
+# 🌳 TreePaper
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**TreePaper** is a lightweight web-based interface that enables users to upload academic papers, view content, and receive AI-powered revision suggestions — all in a clean, intuitive layout inspired by VS Code.
 
-Currently, two official plugins are available:
+## ✨ Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### ✅ Current Features
 
-## Expanding the ESLint configuration
+* 📁 **File Upload & Management**
+  Upload `.txt` files and manage them via a sidebar. Selected file content is shown in the main editor view.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+* 📄 **In-Browser Text Viewer**
+  View academic papers directly in the browser with styled formatting. Scroll through and read the full paper on the center panel.
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+* 🤖 **AI Modification Suggestion**
+  A `Modify Suggestion` button triggers AI-based structural and linguistic revision suggestions (functionality placeholder: alert for now).
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+* 📥 **Download Current File**
+  Download the currently selected paper with the `Download Current File` button.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+* 🧠 **Clean UI Layout**
+  Uses a three-panel layout:
+
+  * **Left**: File upload and list
+  * **Center**: Paper viewer
+  * **Right**: Placeholder for AI chat suggestions
+
+* 🖼️ **Branding**
+  Custom header with a `TreePaper` logo and name.
+
+## 📦 Tech Stack
+
+* **Frontend**: React + TypeScript
+* **Styling**: TailwindCSS
+* **Bundler**: Vite
+* **Routing**: React Router DOM
+
+## 📂 Folder Structure (Simplified)
+
+```
+src/
+├── components/
+│   ├── Header.tsx
+│   ├── FileSidebar.tsx
+│   └── EditorPanel.tsx
+├── pages/
+│   ├── EditorPage.tsx
+│   └── ChatPage.tsx
+├── App.tsx
+└── main.tsx
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🚀 How to Run
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+# Install dependencies
+npm install
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Start development server
+npm run dev
 ```
+
+Then visit: [http://localhost:5173](http://localhost:5173)
+
+## 🔧 To Do / Coming Soon
+
+* [ ] Integrate real AI-based modify suggestion (LLM backend)
+* [ ] AI Chat support in right panel
+* [ ] PDF or `.docx` viewer and export
+* [ ] Tree-based logic visualization (TreeLLM → TreePaper)
+* [ ] Edit & Save file content directly
+
+---
