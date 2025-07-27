@@ -24,7 +24,7 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
 
       {/* 채팅 박스 */}
       <div className="flex flex-col flex-1 min-h-0 bg-white rounded-lg shadow px-4 py-3 overflow-hidden">
-        {/* 🟦 메시지 영역 */}
+        {/* 메시지 영역 */}
         <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
           {chatHistory.map((msg, idx) => (
             <div
@@ -42,11 +42,11 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
           ))}
         </div>
 
-        {/* 🟩 입력창과 전송 버튼 */}
+        {/* 입력창과 전송 버튼 */}
         <div className="flex gap-2 pt-3 shrink-0 overflow-x-auto whitespace-nowrap max-w-full">
           <input
             type="text"
-            className="flex-1 px-3 py-2 rounded border text-lg bg-white text-black min-w-[200px]"
+            className="flex-1 px-3 py-2 rounded border text-lg bg-gray-100 text-black min-w-[200px]"
             value={chatInput}
             onChange={onChatInputChange}
             placeholder="질문을 입력하세요..."

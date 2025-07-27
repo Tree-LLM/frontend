@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo, useEffect } from 'react';
 import Header from '../components/Header';
 import FileSidebar from '../components/FileSidebar';
 import EditorPanel from '../components/EditorPanel';
@@ -66,54 +66,50 @@ function EditorPage() {
   };
 
   const handleUpload = (file: File) => {
-  const fileName = file.name;
-  const ext = fileName.split('.').pop()?.toLowerCase();
+    const fileName = file.name;
+    const ext = fileName.split('.').pop()?.toLowerCase();
 
-  const alreadyExists = files.some((f) => f.name === fileName);
-  if (alreadyExists) {
-    alert(`이미 업로드된 파일입니다: ${fileName}`);
-    return;
-  }
+    const alreadyExists = files.some((f) => f.name === fileName);
+    if (alreadyExists) {
+      alert(`이미 업로드된 파일입니다: ${fileName}`);
+      return;
+    }
 
-  // ✅ PDF 처리
-  if (ext === 'pdf') {
-    extractTextFromPdf(file).then((extractedText) => {
-      const newFile = { name: fileName, content: extractedText };
+    if (ext === 'pdf') {
+      extractTextFromPdf(file).then((extractedText) => {
+        const newFile = { name: fileName, content: extractedText };
+        setFiles((prev) => [...prev, newFile]);
+        setSelectedFile(fileName);
+        setFileContent(extractedText);
+        alert(`Uploaded: ${fileName}`);
+      }).catch((error) => {
+        console.error('PDF 추출 오류:', error);
+        alert(`PDF 처리 중 오류 발생: ${fileName}`);
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      let content = reader.result?.toString() || '';
+      const newFile = { name: fileName, content };
       setFiles((prev) => [...prev, newFile]);
       setSelectedFile(fileName);
-      setFileContent(extractedText);
+      setFileContent(content);
       alert(`Uploaded: ${fileName}`);
-    }).catch((error) => {
-      console.error('PDF 추출 오류:', error);
-      alert(`PDF 처리 중 오류 발생: ${fileName}`);
-    });
-    return;
-  }
+    };
 
-  // ✅ 텍스트 파일 처리
-  const reader = new FileReader();
-  reader.onload = () => {
-    let content = reader.result?.toString() || '';
-    const newFile = { name: fileName, content };
-    setFiles((prev) => [...prev, newFile]);
-    setSelectedFile(fileName);
-    setFileContent(content);
-    alert(`Uploaded: ${fileName}`);
+    if (ext === 'md' || ext === 'txt' || ext === 'json') {
+      reader.readAsText(file);
+    } else {
+      const dummy = `[미리보기가 지원되지 않는 파일입니다: ${fileName}]`;
+      const newFile = { name: fileName, content: dummy };
+      setFiles((prev) => [...prev, newFile]);
+      setSelectedFile(fileName);
+      setFileContent(dummy);
+      alert(`Uploaded: ${fileName}`);
+    }
   };
-
-  if (ext === 'md' || ext === 'txt' || ext === 'json') {
-    reader.readAsText(file);
-  } else {
-    // ✅ 미리보기 불가한 파일
-    const dummy = `[미리보기가 지원되지 않는 파일입니다: ${fileName}]`;
-    const newFile = { name: fileName, content: dummy };
-    setFiles((prev) => [...prev, newFile]);
-    setSelectedFile(fileName);
-    setFileContent(dummy);
-    alert(`Uploaded: ${fileName}`);
-  }
-};
-
 
   const handleSendMessage = () => {
     if (!chatInput.trim()) return;
@@ -128,9 +124,30 @@ function EditorPage() {
     setChatInput('');
   };
 
+  // ✅ Blob URL 생성
+  const selectedFileObj = files.find(f => f.name === selectedFile);
+  const blobUrl = useMemo(() => {
+    if (!selectedFileObj) return '';
+    const blob = new Blob([selectedFileObj.content], { type: 'text/plain' });
+    return URL.createObjectURL(blob);
+  }, [selectedFileObj]);
+
+  // ✅ Blob URL 해제
+  useEffect(() => {
+    return () => {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [blobUrl]);
+
   return (
     <div className="flex flex-col h-screen">
-      <Header onClickGenerate={() => alert('수정 제안')} />
+      <Header
+        onClickGenerate={() => alert('수정 제안')}
+        currentFileUrl={blobUrl}
+        currentFileName={selectedFile}
+      />
 
       <div className="flex flex-1 overflow-hidden">
         {showSidebar && (
