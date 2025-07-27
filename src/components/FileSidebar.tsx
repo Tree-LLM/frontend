@@ -5,9 +5,16 @@ type FileSidebarProps = {
   selected: string;
   onSelect: (filename: string) => void;
   onUpload: (file: File) => void; 
+  onDelete: (filename: string) => void;  // ✅ 추가됨
 };
 
-const FileSidebar: React.FC<FileSidebarProps> = ({ files, selected, onSelect, onUpload }) => {
+const FileSidebar: React.FC<FileSidebarProps> = ({
+  files,
+  selected,
+  onSelect,
+  onUpload,
+  onDelete,  // ✅ 추가됨
+}) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,10 +51,10 @@ const FileSidebar: React.FC<FileSidebarProps> = ({ files, selected, onSelect, on
       {/* 파일 목록 */}
       <ul className="space-y-1 overflow-y-auto flex-1 min-h-0">
         {files.map((file) => (
-          <li key={file}>
+          <li key={file} className="flex items-center justify-between group">
             <button
               onClick={() => onSelect(file)}
-              className={`w-full text-left px-3 py-2 rounded text-lg truncate transition-colors
+              className={`flex-1 text-left px-3 py-2 rounded text-lg truncate transition-colors
                 ${file === selected
                   ? 'bg-blue-200 text-blue-800 font-semibold'
                   : 'hover:bg-gray-200 text-gray-800'}
@@ -55,6 +62,15 @@ const FileSidebar: React.FC<FileSidebarProps> = ({ files, selected, onSelect, on
               title={file}
             >
               {file}
+            </button>
+
+            {/* 삭제 버튼 */}
+            <button
+              onClick={() => onDelete(file)}
+              className="ml-2 px-2 text-red-500 hover:text-red-700 font-bold invisible group-hover:visible"
+              title="삭제"
+            >
+              ✕
             </button>
           </li>
         ))}

@@ -3,6 +3,10 @@ import Header from '../components/Header';
 import FileSidebar from '../components/FileSidebar';
 import EditorPanel from '../components/EditorPanel';
 import FeedbackPanel from '../components/FeedbackPanel';
+import * as pdfjsLib from 'pdfjs-dist';
+import { extractTextFromPdf } from '@/lib/extractTextFromPdf';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 type ChatMessage = { sender: 'user' | 'ai'; message: string };
 type UploadedFile = { name: string; content: string };
@@ -27,6 +31,22 @@ function EditorPage() {
     }
   };
 
+  const handleDeleteFile = (filename: string) => {
+    const updatedFiles = files.filter(f => f.name !== filename);
+    setFiles(updatedFiles);
+
+    if (selectedFile === filename) {
+      if (updatedFiles.length > 0) {
+        const fallback = updatedFiles[0];
+        setSelectedFile(fallback.name);
+        setFileContent(fallback.content);
+      } else {
+        setSelectedFile('');
+        setFileContent('');
+      }
+    }
+  };
+
   const handleMouseDown = () => {
     isResizing.current = true;
     document.addEventListener('mousemove', handleMouseMove);
@@ -46,53 +66,66 @@ function EditorPage() {
   };
 
   const handleUpload = (file: File) => {
-    const fileName = file.name;
-    const ext = fileName.split('.').pop()?.toLowerCase();
+  const fileName = file.name;
+  const ext = fileName.split('.').pop()?.toLowerCase();
 
-    // 중복 업로드 방지
-    const alreadyExists = files.some((f) => f.name === fileName);
-    if (alreadyExists) {
-      alert(`이미 업로드된 파일입니다: ${fileName}`);
-      return;
-    }
+  const alreadyExists = files.some((f) => f.name === fileName);
+  if (alreadyExists) {
+    alert(`이미 업로드된 파일입니다: ${fileName}`);
+    return;
+  }
 
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      let content = reader.result?.toString() || '';
-
-      if (ext === 'pdf') {
-        content = `[PDF 파일: ${fileName}] 미리보기는 아직 지원되지 않습니다.`;
-      }
-
-      const newFile = { name: fileName, content };
+  // ✅ PDF 처리
+  if (ext === 'pdf') {
+    extractTextFromPdf(file).then((extractedText) => {
+      const newFile = { name: fileName, content: extractedText };
       setFiles((prev) => [...prev, newFile]);
       setSelectedFile(fileName);
-      setFileContent(content);
-    };
+      setFileContent(extractedText);
+      alert(`Uploaded: ${fileName}`);
+    }).catch((error) => {
+      console.error('PDF 추출 오류:', error);
+      alert(`PDF 처리 중 오류 발생: ${fileName}`);
+    });
+    return;
+  }
 
-    if (ext === 'md' || ext === 'txt' || ext === 'json') {
-      reader.readAsText(file);
-    } else {
-      const dummy = `[미리보기가 지원되지 않는 파일입니다: ${fileName}]`;
-      const newFile = { name: fileName, content: dummy };
-      setFiles((prev) => [...prev, newFile]);
-      setSelectedFile(fileName);
-      setFileContent(dummy);
-    }
-
+  // ✅ 텍스트 파일 처리
+  const reader = new FileReader();
+  reader.onload = () => {
+    let content = reader.result?.toString() || '';
+    const newFile = { name: fileName, content };
+    setFiles((prev) => [...prev, newFile]);
+    setSelectedFile(fileName);
+    setFileContent(content);
     alert(`Uploaded: ${fileName}`);
   };
 
-  const handleSendMessage = (msg: string) => {
-    setChatHistory([...chatHistory, { sender: 'user', message: msg }]);
+  if (ext === 'md' || ext === 'txt' || ext === 'json') {
+    reader.readAsText(file);
+  } else {
+    // ✅ 미리보기 불가한 파일
+    const dummy = `[미리보기가 지원되지 않는 파일입니다: ${fileName}]`;
+    const newFile = { name: fileName, content: dummy };
+    setFiles((prev) => [...prev, newFile]);
+    setSelectedFile(fileName);
+    setFileContent(dummy);
+    alert(`Uploaded: ${fileName}`);
+  }
+};
+
+
+  const handleSendMessage = () => {
+    if (!chatInput.trim()) return;
+
+    const userMsg: ChatMessage = { sender: 'user', message: chatInput.trim() };
+    const aiMsg: ChatMessage = {
+      sender: 'ai',
+      message: 'AI 응답 예시입니다. 실제 연동 필요.',
+    };
+
+    setChatHistory((prev) => [...prev, userMsg, aiMsg]);
     setChatInput('');
-    setTimeout(() => {
-      setChatHistory((prev) => [
-        ...prev,
-        { sender: 'ai', message: 'AI 응답 예시입니다.' },
-      ]);
-    }, 800);
   };
 
   return (
@@ -110,6 +143,7 @@ function EditorPage() {
               selected={selectedFile}
               onSelect={handleSelectFile}
               onUpload={handleUpload}
+              onDelete={handleDeleteFile}
             />
           </div>
         )}
