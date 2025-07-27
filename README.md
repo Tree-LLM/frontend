@@ -46,13 +46,3 @@ npm run dev
 ```
 
 Then visit: [http://localhost:5173](http://localhost:5173)
-
-## 🔧 To Do / Coming Soon
-
-* [ ] Integrate real AI-based modify suggestion (LLM backend)
-* [ ] AI Chat support in right panel
-* [ ] PDF or `.docx` viewer and export
-* [ ] Tree-based logic visualization (TreeLLM → TreePaper)
-* [ ] Edit & Save file content directly
-
----
