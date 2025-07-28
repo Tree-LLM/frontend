@@ -2,7 +2,7 @@
 
 **TreePaper** is a lightweight web-based interface that enables users to upload academic papers, view content, and receive AI-powered revision suggestions — all in a clean, intuitive layout inspired by VS Code.
 
-<img width="1919" height="915" alt="image" src="https://github.com/user-attachments/assets/c6936d3b-39f5-4564-b27e-d2571834c4f3" />
+<img width="1919" height="965" alt="image" src="https://github.com/user-attachments/assets/4f285f89-6fb2-44d7-b604-3eddcb7cf958" />
 
 ## ✨ Features
 
