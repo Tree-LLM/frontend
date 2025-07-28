@@ -3,16 +3,17 @@ import Header from '../components/Header';
 import FileSidebar from '../components/FileSidebar';
 import EditorPanel from '../components/EditorPanel';
 import FeedbackPanel from '../components/FeedbackPanel';
-import * as pdfjsLib from 'pdfjs-dist';
 import { extractTextFromPdf } from '@/lib/extractTextFromPdf';
-
+import * as pdfjsLib from 'pdfjs-dist';
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 type ChatMessage = { sender: 'user' | 'ai'; message: string };
 type UploadedFile = { name: string; content: string };
 
 function EditorPage() {
+  const [files, setFiles] = useState<UploadedFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<string>('');
+  const [selectedTree, setSelectedTree] = useState<string>('');
   const [fileContent, setFileContent] = useState<string>('');
   const [chatInput, setChatInput] = useState<string>('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -21,54 +22,30 @@ function EditorPage() {
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const isResizing = useRef(false);
 
-  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const handleDeleteTree = (filename: string) => {
+    setSelectedTree(prev => (prev === filename ? '' : prev));
+    setFiles(prev => prev.filter(f => f.name !== filename));
+  };
 
   const handleSelectFile = (filename: string) => {
-    const file = files.find((f) => f.name === filename);
+    const file = files.find(f => f.name === filename);
     if (file) {
       setSelectedFile(file.name);
       setFileContent(file.content);
     }
   };
 
-  const handleDeleteFile = (filename: string) => {
-    const updatedFiles = files.filter(f => f.name !== filename);
-    setFiles(updatedFiles);
-
-    if (selectedFile === filename) {
-      if (updatedFiles.length > 0) {
-        const fallback = updatedFiles[0];
-        setSelectedFile(fallback.name);
-        setFileContent(fallback.content);
-      } else {
-        setSelectedFile('');
-        setFileContent('');
-      }
+  const handleSelectTree = (filename: string) => {
+    setSelectedTree(filename);
+    const file = files.find(f => f.name === filename);
+    if (file) {
+      setFileContent(file.content); // ✅ 에디터에 Tree 파일 내용 표시
     }
-  };
-
-  const handleMouseDown = () => {
-    isResizing.current = true;
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isResizing.current) return;
-    const newWidth = Math.max(120, Math.min(e.clientX, 500));
-    setSidebarWidth(newWidth);
-  };
-
-  const handleMouseUp = () => {
-    isResizing.current = false;
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
   };
 
   const handleUpload = (file: File) => {
     const fileName = file.name;
     const ext = fileName.split('.').pop()?.toLowerCase();
-
     const alreadyExists = files.some((f) => f.name === fileName);
     if (alreadyExists) {
       alert(`이미 업로드된 파일입니다: ${fileName}`);
@@ -81,50 +58,59 @@ function EditorPage() {
         setFiles((prev) => [...prev, newFile]);
         setSelectedFile(fileName);
         setFileContent(extractedText);
-        alert(`Uploaded: ${fileName}`);
-      }).catch((error) => {
-        console.error('PDF 추출 오류:', error);
-        alert(`PDF 처리 중 오류 발생: ${fileName}`);
       });
+    } else {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const content = reader.result?.toString() || '';
+        const newFile = { name: fileName, content };
+        setFiles((prev) => [...prev, newFile]);
+        setSelectedFile(fileName);
+        setFileContent(content);
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleDeleteFile = (filename: string) => {
+    const updated = files.filter((f) => f.name !== filename);
+    setFiles(updated);
+    if (selectedFile === filename) {
+      setSelectedFile(updated[0]?.name || '');
+      setFileContent(updated[0]?.content || '');
+    }
+  };
+
+  const handleRenameFile = (oldName: string, newName: string) => {
+    const exists = files.some(f => f.name === newName);
+    if (exists) {
+      alert(`이미 존재하는 이름입니다: ${newName}`);
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      let content = reader.result?.toString() || '';
-      const newFile = { name: fileName, content };
-      setFiles((prev) => [...prev, newFile]);
-      setSelectedFile(fileName);
-      setFileContent(content);
-      alert(`Uploaded: ${fileName}`);
-    };
+    setFiles(prev =>
+      prev.map(f =>
+        f.name === oldName ? { ...f, name: newName } : f
+      )
+    );
 
-    if (ext === 'md' || ext === 'txt' || ext === 'json') {
-      reader.readAsText(file);
-    } else {
-      const dummy = `[미리보기가 지원되지 않는 파일입니다: ${fileName}]`;
-      const newFile = { name: fileName, content: dummy };
-      setFiles((prev) => [...prev, newFile]);
-      setSelectedFile(fileName);
-      setFileContent(dummy);
-      alert(`Uploaded: ${fileName}`);
+    if (selectedFile === oldName) {
+      setSelectedFile(newName);
+    }
+
+    if (selectedTree === oldName) {
+      setSelectedTree(newName);
     }
   };
 
   const handleSendMessage = () => {
     if (!chatInput.trim()) return;
-
     const userMsg: ChatMessage = { sender: 'user', message: chatInput.trim() };
-    const aiMsg: ChatMessage = {
-      sender: 'ai',
-      message: 'AI 응답 예시입니다. 실제 연동 필요.',
-    };
-
+    const aiMsg: ChatMessage = { sender: 'ai', message: 'AI 응답 예시입니다.' };
     setChatHistory((prev) => [...prev, userMsg, aiMsg]);
     setChatInput('');
   };
 
-  // ✅ Blob URL 생성
   const selectedFileObj = files.find(f => f.name === selectedFile);
   const blobUrl = useMemo(() => {
     if (!selectedFileObj) return '';
@@ -132,14 +118,15 @@ function EditorPage() {
     return URL.createObjectURL(blob);
   }, [selectedFileObj]);
 
-  // ✅ Blob URL 해제
   useEffect(() => {
     return () => {
-      if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);
-      }
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
     };
   }, [blobUrl]);
+
+  const treeFiles = useMemo(() => {
+    return files.filter((f) => f.name.toLowerCase().endsWith('.tree.json'));
+  }, [files]);
 
   return (
     <div className="flex flex-col h-screen">
@@ -151,16 +138,18 @@ function EditorPage() {
 
       <div className="flex flex-1 overflow-hidden">
         {showSidebar && (
-          <div
-            style={{ width: sidebarWidth }}
-            className="bg-gray-100 p-4 overflow-y-auto flex-shrink-0"
-          >
+          <div style={{ width: sidebarWidth }} className="bg-gray-100 p-4 overflow-y-auto flex-shrink-0">
             <FileSidebar
-              files={files.map((f) => f.name)}
+              files={files.map(f => f.name)}
+              treeFiles={treeFiles.map(f => f.name)}
               selected={selectedFile}
+              selectedTree={selectedTree}
               onSelect={handleSelectFile}
               onUpload={handleUpload}
               onDelete={handleDeleteFile}
+              onDeleteTree={handleDeleteTree}
+              onSelectTree={handleSelectTree}
+              onRenameFile={handleRenameFile}
             />
           </div>
         )}
@@ -168,7 +157,9 @@ function EditorPage() {
         {showSidebar && (
           <div
             className="w-1 bg-gray-300 hover:bg-gray-400 cursor-col-resize"
-            onMouseDown={handleMouseDown}
+            onMouseDown={() => {
+              isResizing.current = true;
+            }}
           />
         )}
 
@@ -182,7 +173,7 @@ function EditorPage() {
         </div>
 
         <div className="flex-1 p-4 overflow-y-auto bg-white">
-          <EditorPanel title={selectedFile} content={fileContent} />
+          <EditorPanel title={selectedFile || selectedTree} content={fileContent} />
         </div>
 
         <div className="flex flex-col justify-center">
