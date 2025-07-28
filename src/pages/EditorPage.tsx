@@ -1,10 +1,11 @@
 import { useRef, useState, useMemo, useEffect } from 'react';
 import Header from '../components/Header';
 import FileSidebar from '../components/FileSidebar';
-import EditorPanel from '../components/EditorPanel';
+import Viewer from '../components/Viewer';
 import FeedbackPanel from '../components/FeedbackPanel';
 import { extractTextFromPdf } from '@/lib/extractTextFromPdf';
 import * as pdfjsLib from 'pdfjs-dist';
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 type ChatMessage = { sender: 'user' | 'ai'; message: string };
@@ -39,7 +40,7 @@ function EditorPage() {
     setSelectedTree(filename);
     const file = files.find(f => f.name === filename);
     if (file) {
-      setFileContent(file.content); // ✅ 에디터에 Tree 파일 내용 표시
+      setFileContent(file.content);
     }
   };
 
@@ -94,13 +95,8 @@ function EditorPage() {
       )
     );
 
-    if (selectedFile === oldName) {
-      setSelectedFile(newName);
-    }
-
-    if (selectedTree === oldName) {
-      setSelectedTree(newName);
-    }
+    if (selectedFile === oldName) setSelectedFile(newName);
+    if (selectedTree === oldName) setSelectedTree(newName);
   };
 
   const handleSendMessage = () => {
@@ -128,6 +124,20 @@ function EditorPage() {
     return files.filter((f) => f.name.toLowerCase().endsWith('.tree.json'));
   }, [files]);
 
+  const handleAddTestFile = () => {
+    const testContent = `# 제목1\n내용\n## 소제목1\n내용`;
+    const testName = 'test.md';
+    const alreadyExists = files.some(f => f.name === testName);
+    if (alreadyExists) {
+      alert('이미 test.md 파일이 존재합니다.');
+      return;
+    }
+    const newFile = { name: testName, content: testContent };
+    setFiles(prev => [...prev, newFile]);
+    setSelectedFile(testName);
+    setFileContent(testContent);
+  };
+
   return (
     <div className="flex flex-col h-screen">
       <Header
@@ -138,7 +148,10 @@ function EditorPage() {
 
       <div className="flex flex-1 overflow-hidden">
         {showSidebar && (
-          <div style={{ width: sidebarWidth }} className="bg-gray-100 p-4 overflow-y-auto flex-shrink-0">
+          <div
+            style={{ width: sidebarWidth }}
+            className="bg-gray-100 p-4 overflow-y-auto flex-shrink-0"
+          >
             <FileSidebar
               files={files.map(f => f.name)}
               treeFiles={treeFiles.map(f => f.name)}
@@ -150,6 +163,7 @@ function EditorPage() {
               onDeleteTree={handleDeleteTree}
               onSelectTree={handleSelectTree}
               onRenameFile={handleRenameFile}
+              onAddTestFile={handleAddTestFile}  // ✅ 추가됨
             />
           </div>
         )}
@@ -173,16 +187,7 @@ function EditorPage() {
         </div>
 
         <div className="flex-1 p-4 overflow-y-auto bg-white">
-          <EditorPanel title={selectedFile || selectedTree} content={fileContent} />
-        </div>
-
-        <div className="flex flex-col justify-center">
-          <button
-            className="w-5 h-full bg-gray-200 hover:bg-gray-300 text-sm font-bold border-none"
-            onClick={() => setShowFeedback(!showFeedback)}
-          >
-            {showFeedback ? '>' : '<'}
-          </button>
+          <Viewer title={selectedTree || selectedFile} content={fileContent} />
         </div>
 
         {showFeedback && (

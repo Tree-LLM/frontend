@@ -11,6 +11,7 @@ type FileSidebarProps = {
   onDeleteTree: (filename: string) => void;
   onSelectTree: (filename: string) => void;
   onRenameFile: (oldName: string, newName: string) => void;
+  onAddTestFile: () => void; // ✅ 추가
 };
 
 const FileSidebar: React.FC<FileSidebarProps> = ({
@@ -24,6 +25,7 @@ const FileSidebar: React.FC<FileSidebarProps> = ({
   onDeleteTree,
   onSelectTree,
   onRenameFile,
+  onAddTestFile, // ✅ 추가
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [draggingFile, setDraggingFile] = useState<string | null>(null);
@@ -62,7 +64,7 @@ const FileSidebar: React.FC<FileSidebarProps> = ({
       </div>
 
       {/* 파일 업로드 */}
-      <div className="mb-3">
+      <div className="mb-2">
         <input
           type="file"
           ref={fileInputRef}
@@ -74,6 +76,16 @@ const FileSidebar: React.FC<FileSidebarProps> = ({
           className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 w-full text-lg"
         >
           File Upload
+        </button>
+      </div>
+
+      {/* ✅ 테스트 파일 추가 */}
+      <div className="mb-4">
+        <button
+          onClick={onAddTestFile}
+          className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full text-lg"
+        >
+          Add Test File
         </button>
       </div>
 

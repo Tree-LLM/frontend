@@ -1,19 +1,33 @@
-import React from 'react';
-
 interface EditorPanelProps {
   title: string;
   content: string;
+  headings: HeadingItem[];
+  selectedId: string;
 }
 
-const EditorPanel: React.FC<EditorPanelProps> = ({ title, content }) => {
+export default function EditorPanel({ title, content, headings, selectedId }: EditorPanelProps) {
+  const lines = content.split('\n');
+
   return (
-    <div className="p-4 overflow-y-auto bg-white">
-      <h2 className="text-xl font-semibold mb-4">{title}</h2>
-      <pre className="bg-gray-50 p-4 rounded text-lg text-gray-800 whitespace-pre-wrap">
-        {content}
-      </pre>
+    <div className="p-4 whitespace-pre-wrap">
+      <h2 className="text-2xl font-bold mb-4">{title}</h2>
+      {lines.map((line, index) => {
+        const heading = headings.find((h) => h.id === `heading-${index}`);
+        if (heading) {
+          return (
+            <h3
+              key={index}
+              id={heading.id}
+              className={`font-bold mt-4 ${
+                selectedId === heading.id ? 'text-blue-500' : ''
+              }`}
+            >
+              {line}
+            </h3>
+          );
+        }
+        return <p key={index}>{line}</p>;
+      })}
     </div>
   );
-};
-
-export default EditorPanel;
+}
