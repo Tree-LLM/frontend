@@ -1,12 +1,18 @@
 import { Button } from "./ui/button";
 
 interface HeaderProps {
-  onClickGenerate: () => void;
+  onClickGenerate: () => Promise<void>;
   currentFileUrl: string;
   currentFileName: string;
+  isModifying: boolean;
 }
 
-export default function Header({ onClickGenerate, currentFileUrl, currentFileName }: HeaderProps) {
+export default function Header({
+  onClickGenerate,
+  currentFileUrl,
+  currentFileName,
+  isModifying,
+}: HeaderProps) {
   return (
     <header className="bg-[#EDEDED] py-4 w-full flex items-center">
       <div className="ml-16 flex items-center space-x-3">
@@ -20,6 +26,7 @@ export default function Header({ onClickGenerate, currentFileUrl, currentFileNam
           size="lg"
           onClick={onClickGenerate}
           className="text-3xl font-bold px-10 py-8"
+          disabled={isModifying} // 로딩 중이면 버튼 비활성화
         >
           Modify Suggestion
         </Button>

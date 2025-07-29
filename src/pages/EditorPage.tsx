@@ -22,26 +22,33 @@ function EditorPage() {
   const [showFeedback, setShowFeedback] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const isResizing = useRef(false);
-  const [savedContent, setSavedContent] = useState<string>(''); // 저장 시점 백업
-  const [selectedId, setSelectedId] = useState<string>(''); // heading 선택 상태
+  const [savedContent, setSavedContent] = useState<string>('');
+  const [selectedId, setSelectedId] = useState<string>('');
+  const [isModifying, setIsModifying] = useState<boolean>(false); // ✅
 
   const handleSaveEditedContent = (newText: string) => {
-  setFileContent(newText);
-  setSavedContent(newText);
-  setFiles((prev) =>
-    prev.map((f) =>
-      f.name === selectedFile ? { ...f, content: newText } : f
-    )
-  );
-};
+    setFileContent(newText);
+    setSavedContent(newText);
+    setFiles((prev) =>
+      prev.map((f) =>
+        f.name === selectedFile ? { ...f, content: newText } : f
+      )
+    );
+  };
 
-const handleUndoEditedContent = () => {
-  if (savedContent) {
-    setFileContent(savedContent);
-  } else {
-    alert('되돌릴 저장본이 없습니다.');
-  }
-};
+  const handleUndoEditedContent = () => {
+    if (savedContent) {
+      setFileContent(savedContent);
+    } else {
+      alert('되돌릴 저장본이 없습니다.');
+    }
+  };
+
+  const handleGenerate = async () => {
+    setIsModifying(true); // ✅ 로딩 시작
+    await new Promise((resolve) => setTimeout(resolve, 2000)); // ✅ (테스트용 대기)
+    setIsModifying(false); // ✅ 로딩 종료
+  };
 
   const handleDeleteTree = (filename: string) => {
     setSelectedTree(prev => (prev === filename ? '' : prev));
@@ -161,7 +168,7 @@ const handleUndoEditedContent = () => {
   return (
     <div className="flex flex-col h-screen">
       <Header
-        onClickGenerate={() => alert('수정 제안')}
+        onClickGenerate={handleGenerate} // ✅ alert 제거하고 로딩 함수 연결
         currentFileUrl={blobUrl}
         currentFileName={selectedFile}
       />
@@ -183,7 +190,7 @@ const handleUndoEditedContent = () => {
               onDeleteTree={handleDeleteTree}
               onSelectTree={handleSelectTree}
               onRenameFile={handleRenameFile}
-              onAddTestFile={handleAddTestFile}  // ✅ 추가됨
+              onAddTestFile={handleAddTestFile}
             />
           </div>
         )}
@@ -208,14 +215,13 @@ const handleUndoEditedContent = () => {
 
         <div className="flex-1 p-4 overflow-y-auto bg-white">
           <Viewer
-  title={selectedTree || selectedFile}
-  content={fileContent}
-  onSave={handleSaveEditedContent}
-  onUndo={handleUndoEditedContent}
-  selectedId={selectedId}
-  setSelectedId={setSelectedId}
-/>
-
+            title={selectedTree || selectedFile}
+            content={fileContent}
+            onSave={handleSaveEditedContent}
+            onUndo={handleUndoEditedContent}
+            selectedId={selectedId}
+            setSelectedId={setSelectedId}
+          />
         </div>
 
         {showFeedback && (
@@ -229,6 +235,16 @@ const handleUndoEditedContent = () => {
           </div>
         )}
       </div>
+
+      {/* ✅ 로딩 화면 오버레이 */}
+      {isModifying && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-60">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid mx-auto mb-4"></div>
+            <p className="text-lg font-semibold text-gray-700">Generating suggestions...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
