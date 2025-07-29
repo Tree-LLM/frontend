@@ -15,35 +15,90 @@ export default function Viewer({ title, content, onSave, onUndo }: Props) {
   const [headings, setHeadings] = useState<HeadingItem[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const editorRef = useRef<HTMLDivElement>(null);
-
   const [history, setHistory] = useState<string[]>([]);
   const [future, setFuture] = useState<string[]>([]);
-
-  const [suggestion, setSuggestion] = useState<string>(''); // Suggestion 추가
+  const [suggestion, setSuggestion] = useState<string>('');
+  const isComposing = useRef(false);
+  const cursorOffset = useRef<number | null>(null);
 
   useEffect(() => {
     setText(content);
+    updateEditorHTML(content);
+    setHistory([]);
+    setFuture([]);
   }, [content]);
 
   useEffect(() => {
     setHeadings(parseHeadings(text));
   }, [text]);
 
-  useEffect(() => {
-    updateEditorHTML(content);
-  }, [content]);
+  const getCursorOffset = (): number | null => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return null;
+    const range = selection.getRangeAt(0);
+    const preRange = range.cloneRange();
+    preRange.selectNodeContents(editorRef.current!);
+    preRange.setEnd(range.endContainer, range.endOffset);
+    return preRange.toString().length;
+  };
+
+  const setCursorOffset = (offset: number) => {
+    const selection = window.getSelection();
+    if (!selection || !editorRef.current) return;
+    let currentOffset = 0;
+    for (const node of editorRef.current.childNodes) {
+      const text = node.textContent || '';
+      const nextOffset = currentOffset + text.length;
+      if (offset <= nextOffset) {
+        const innerOffset = offset - currentOffset;
+        const range = document.createRange();
+        const target = node.firstChild || node;
+        range.setStart(target, Math.min(innerOffset, target.textContent?.length ?? 0));
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        break;
+      }
+      currentOffset = nextOffset;
+    }
+  };
 
   const updateEditorHTML = (htmlText: string) => {
+    if (!editorRef.current) return;
+    const offset = cursorOffset.current;
+    const html = htmlText
+      .split('\n')
+      .map((line, i) => {
+        const id = `heading-${i}`;
+        return `<p id="${id}" style="margin: 0; margin-bottom: 0.5rem; min-height: 1.4em;">${line || '<br>'}</p>`;
+      })
+      .join('');
+    editorRef.current.innerHTML = html;
+    if (offset !== null) setCursorOffset(offset);
+  };
+
+  const handleInputChange = () => {
     if (editorRef.current) {
-      const html = htmlText
-        .split('\n')
-        .map((line, i) => {
-          const id = `heading-${i}`;
-          return `<p id="${id}" style="margin: 0; margin-bottom: 0.5rem; min-height: 1.4em;">${line || '<br>'}</p>`;
-        })
-        .join('');
-      editorRef.current.innerHTML = html;
+      cursorOffset.current = getCursorOffset();
+      const newText = Array.from(editorRef.current.children)
+        .map((el) => (el as HTMLElement).innerText)
+        .join('\n');
+      if (newText !== text) {
+        setHistory((prev) => [...prev, text]);
+        setFuture([]);
+        setText(newText);
+      }
     }
+  };
+
+  const handleCompositionStart = () => {
+    isComposing.current = true;
+  };
+
+  const handleCompositionEnd = () => {
+    isComposing.current = false;
+    cursorOffset.current = getCursorOffset();
+    updateEditorHTML(text);
   };
 
   const handleSelectHeading = (id: string) => {
@@ -51,7 +106,6 @@ export default function Viewer({ title, content, onSave, onUndo }: Props) {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    // 문단 강조
     if (editorRef.current) {
       const children = editorRef.current.children;
       for (let i = 0; i < children.length; i++) {
@@ -62,7 +116,6 @@ export default function Viewer({ title, content, onSave, onUndo }: Props) {
       }
     }
 
-    // Suggestion mock 연결
     const mockSuggestions: { [key: string]: string } = {
       'heading-0': '이 문단은 배경 설명이 부족하므로 연구 동기를 보완하세요.',
       'heading-1': '이 문단은 중복된 정보가 있습니다. 간결하게 정리해보세요.',
@@ -71,18 +124,9 @@ export default function Viewer({ title, content, onSave, onUndo }: Props) {
     setSuggestion(mockSuggestions[id] || 'No suggestions');
   };
 
-  const handleInputChange = () => {
-    if (editorRef.current) {
-      const newHTML = editorRef.current.innerHTML;
-      setHistory((prev) => [...prev, text]);
-      setFuture([]);
-      setText(newHTML);
-    }
-  };
-
   const handleUndo = () => {
-    if (history.length === 0) return;
-    const previous = history[history.length - 1];
+    if (history.length <= 1) return;
+    const previous = history[history.length - 2];
     setHistory((prev) => prev.slice(0, -1));
     setFuture((next) => [text, ...next]);
     setText(previous);
@@ -105,21 +149,16 @@ export default function Viewer({ title, content, onSave, onUndo }: Props) {
 
   return (
     <div className="flex h-full">
-      {/* 왼쪽 Contents Tree + Suggestion */}
       <div className="text-xl w-1/4 border-r border-gray-300 p-4 overflow-y-auto">
         <ContentsTree
           headings={headings}
           onSelect={handleSelectHeading}
           selectedId={selectedId}
         />
-
-        {/* Suggestion 박스 왼쪽에 표시 */}
         <div className="mt-4 p-3 bg-gray-100 rounded border border-gray-300 text-m text-gray-800">
           <div className="font-semibold mb-1">Suggestion</div>
           <div>{suggestion}</div>
         </div>
-
-        {/* Undo / Redo */}
         <div className="mt-4 flex space-x-2">
           <button
             onClick={handleUndo}
@@ -134,8 +173,6 @@ export default function Viewer({ title, content, onSave, onUndo }: Props) {
             ⤻ Redo
           </button>
         </div>
-
-        {/* Save 버튼 */}
         <button
           onClick={handleSave}
           className="w-full mt-2 bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
@@ -144,13 +181,14 @@ export default function Viewer({ title, content, onSave, onUndo }: Props) {
         </button>
       </div>
 
-      {/* 오른쪽 에디터 */}
       <div className="w-3/4 text-xl">
         <div
           ref={editorRef}
           contentEditable
           suppressContentEditableWarning
           onInput={handleInputChange}
+          onCompositionStart={handleCompositionStart}
+          onCompositionEnd={handleCompositionEnd}
           className="p-6 h-full overflow-y-auto outline-none"
           style={{ lineHeight: '1.6', whiteSpace: 'normal' }}
         />
