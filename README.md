@@ -4,7 +4,7 @@
 
 **TreePaper** is a lightweight VS Code-style web application that helps users manage academic papers, navigate their structure, and receive AI-powered feedback. It supports full editing, file management, undo/redo history, and dynamic AI suggestions.
 
-![TreePaper Screenshot](https://github.com/user-attachments/assets/560671fd-07d2-4cce-bc59-cc1ada5d1a8a)
+<img width="1919" height="966" alt="image" src="https://github.com/user-attachments/assets/04567b1c-629a-4521-aa39-beb3fbe7d4e5" />
 
 ---
 
