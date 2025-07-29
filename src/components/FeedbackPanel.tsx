@@ -49,7 +49,7 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
             className="flex-1 px-3 py-2 rounded border text-lg bg-gray-100 text-black min-w-[200px]"
             value={chatInput}
             onChange={onChatInputChange}
-            placeholder="질문을 입력하세요..."
+            placeholder="Type your question here..."
           />
           <button
             onClick={() => {
@@ -57,7 +57,7 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
             }}
             className="px-4 py-2 bg-green-600 text-white text-lg rounded hover:bg-green-700"
           >
-            전송
+            send
           </button>
         </div>
       </div>

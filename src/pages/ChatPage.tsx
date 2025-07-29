@@ -17,7 +17,7 @@ const ChatPage = () => {
     setChatInput('');
 
     setTimeout(() => {
-      setChatHistory(prev => [...prev, { sender: 'ai', message: 'AI 응답 예시입니다.' }]);
+      setChatHistory(prev => [...prev, { sender: 'ai', message: 'AI answer' }]);
     }, 800);
   };
 

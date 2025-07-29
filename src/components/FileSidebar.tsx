@@ -73,7 +73,7 @@ const FileSidebar: React.FC<FileSidebarProps> = ({
         />
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 w-full text-lg"
+          className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 w-full text-2xl"
         >
           File Upload
         </button>
@@ -83,7 +83,7 @@ const FileSidebar: React.FC<FileSidebarProps> = ({
       <div className="mb-4">
         <button
           onClick={onAddTestFile}
-          className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full text-lg"
+          className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full text-2xl"
         >
           Make File
         </button>
