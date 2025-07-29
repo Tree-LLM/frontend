@@ -240,7 +240,7 @@ function EditorPage() {
       {isModifying && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-60">
           <div className="text-center">
-          <div className="animate-spin rounded-full h-24 w-24 border-t-8 border-blue-500 border-solid mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-24 w-24 border-t-8 border-blue-500 border-solid mx-auto mb-16"></div>
             <p className="text-4xl font-semibold text-gray-700">Generating suggestions...</p>
           </div>
         </div>
