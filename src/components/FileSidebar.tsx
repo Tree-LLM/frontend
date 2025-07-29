@@ -79,13 +79,13 @@ const FileSidebar: React.FC<FileSidebarProps> = ({
         </button>
       </div>
 
-      {/* ✅ 테스트 파일 추가 */}
+      {/* 직접 파일 추가 */}
       <div className="mb-4">
         <button
           onClick={onAddTestFile}
           className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full text-lg"
         >
-          Add Test File
+          Make File
         </button>
       </div>
 

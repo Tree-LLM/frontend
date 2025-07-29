@@ -22,6 +22,26 @@ function EditorPage() {
   const [showFeedback, setShowFeedback] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const isResizing = useRef(false);
+  const [savedContent, setSavedContent] = useState<string>(''); // 저장 시점 백업
+  const [selectedId, setSelectedId] = useState<string>(''); // heading 선택 상태
+
+  const handleSaveEditedContent = (newText: string) => {
+  setFileContent(newText);
+  setSavedContent(newText);
+  setFiles((prev) =>
+    prev.map((f) =>
+      f.name === selectedFile ? { ...f, content: newText } : f
+    )
+  );
+};
+
+const handleUndoEditedContent = () => {
+  if (savedContent) {
+    setFileContent(savedContent);
+  } else {
+    alert('되돌릴 저장본이 없습니다.');
+  }
+};
 
   const handleDeleteTree = (filename: string) => {
     setSelectedTree(prev => (prev === filename ? '' : prev));
@@ -187,7 +207,15 @@ function EditorPage() {
         </div>
 
         <div className="flex-1 p-4 overflow-y-auto bg-white">
-          <Viewer title={selectedTree || selectedFile} content={fileContent} />
+          <Viewer
+  title={selectedTree || selectedFile}
+  content={fileContent}
+  onSave={handleSaveEditedContent}
+  onUndo={handleUndoEditedContent}
+  selectedId={selectedId}
+  setSelectedId={setSelectedId}
+/>
+
         </div>
 
         {showFeedback && (
