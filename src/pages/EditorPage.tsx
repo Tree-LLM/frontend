@@ -45,9 +45,9 @@ function EditorPage() {
   };
 
   const handleGenerate = async () => {
-    setIsModifying(true); // ✅ 로딩 시작
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // ✅ (테스트용 대기)
-    setIsModifying(false); // ✅ 로딩 종료
+    setIsModifying(true); // 로딩 시작
+    await new Promise((resolve) => setTimeout(resolve, 2000)); //(테스트용 대기)
+    setIsModifying(false); // 로딩 종료
   };
 
   const handleDeleteTree = (filename: string) => {
@@ -168,7 +168,7 @@ function EditorPage() {
   return (
     <div className="flex flex-col h-screen">
       <Header
-        onClickGenerate={handleGenerate} // ✅ alert 제거하고 로딩 함수 연결
+        onClickGenerate={handleGenerate} // alert 제거하고 로딩 함수 연결
         currentFileUrl={blobUrl}
         currentFileName={selectedFile}
       />
@@ -236,12 +236,12 @@ function EditorPage() {
         )}
       </div>
 
-      {/* ✅ 로딩 화면 오버레이 */}
+      {/* 로딩 화면 오버레이 */}
       {isModifying && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-60">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid mx-auto mb-4"></div>
-            <p className="text-lg font-semibold text-gray-700">Generating suggestions...</p>
+          <div className="animate-spin rounded-full h-24 w-24 border-t-8 border-blue-500 border-solid mx-auto mb-4"></div>
+            <p className="text-4xl font-semibold text-gray-700">Generating suggestions...</p>
           </div>
         </div>
       )}
