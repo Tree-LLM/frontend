@@ -5,6 +5,7 @@ import EditorPanel from '../components/EditorPanel';
 import FeedbackPanel from '../components/FeedbackPanel';
 import { extractTextFromPdf } from '@/lib/extractTextFromPdf';
 import * as pdfjsLib from 'pdfjs-dist';
+import axios from 'axios';
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 type ChatMessage = { sender: 'user' | 'ai'; message: string };
@@ -17,33 +18,15 @@ function EditorPage() {
   const [fileContent, setFileContent] = useState<string>('');
   const [chatInput, setChatInput] = useState<string>('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [pipelineOutput, setPipelineOutput] = useState<string>('');
   const [showSidebar, setShowSidebar] = useState(true);
   const [showFeedback, setShowFeedback] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const isResizing = useRef(false);
+  const [uploadedFilePath, setUploadedFilePath] = useState<string>('');
+  const eventSourceRef = useRef<EventSource | null>(null);
 
-  const handleDeleteTree = (filename: string) => {
-    setSelectedTree(prev => (prev === filename ? '' : prev));
-    setFiles(prev => prev.filter(f => f.name !== filename));
-  };
-
-  const handleSelectFile = (filename: string) => {
-    const file = files.find(f => f.name === filename);
-    if (file) {
-      setSelectedFile(file.name);
-      setFileContent(file.content);
-    }
-  };
-
-  const handleSelectTree = (filename: string) => {
-    setSelectedTree(filename);
-    const file = files.find(f => f.name === filename);
-    if (file) {
-      setFileContent(file.content); // ✅ 에디터에 Tree 파일 내용 표시
-    }
-  };
-
-  const handleUpload = (file: File) => {
+  const handleUpload = async (file: File) => {
     const fileName = file.name;
     const ext = fileName.split('.').pop()?.toLowerCase();
     const alreadyExists = files.some((f) => f.name === fileName);
@@ -53,136 +36,109 @@ function EditorPage() {
     }
 
     if (ext === 'pdf') {
-      extractTextFromPdf(file).then((extractedText) => {
-        const newFile = { name: fileName, content: extractedText };
-        setFiles((prev) => [...prev, newFile]);
-        setSelectedFile(fileName);
-        setFileContent(extractedText);
-      });
+      const extractedText = await extractTextFromPdf(file);
+      addFile(fileName, extractedText);
     } else {
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
         const content = reader.result?.toString() || '';
-        const newFile = { name: fileName, content };
-        setFiles((prev) => [...prev, newFile]);
-        setSelectedFile(fileName);
-        setFileContent(content);
+        addFile(fileName, content);
       };
       reader.readAsText(file);
     }
-  };
 
-  const handleDeleteFile = (filename: string) => {
-    const updated = files.filter((f) => f.name !== filename);
-    setFiles(updated);
-    if (selectedFile === filename) {
-      setSelectedFile(updated[0]?.name || '');
-      setFileContent(updated[0]?.content || '');
+    // Flask 업로드 API 호출
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const response = await axios.post("http://127.0.0.1:5000/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      console.log("파일 업로드 성공:", response.data.file_path);
+      setUploadedFilePath(response.data.file_path);
+    } catch (error) {
+      console.error("파일 업로드 실패", error);
     }
   };
 
-  const handleRenameFile = (oldName: string, newName: string) => {
-    const exists = files.some(f => f.name === newName);
-    if (exists) {
-      alert(`이미 존재하는 이름입니다: ${newName}`);
+  const addFile = (fileName: string, content: string) => {
+    const newFile = { name: fileName, content };
+    setFiles((prev) => [...prev, newFile]);
+    setSelectedFile(fileName);
+    setFileContent(content);
+  };
+
+  const handleRunPipeline = () => {
+    if (!uploadedFilePath) {
+      alert("파일을 업로드한 후 실행하세요.");
       return;
     }
 
-    setFiles(prev =>
-      prev.map(f =>
-        f.name === oldName ? { ...f, name: newName } : f
-      )
-    );
+    setPipelineOutput("✅ 파이프라인 실행 중...");
+    setChatHistory(prev => [...prev, { sender: "ai", message: "🚀 파이프라인 시작..." }]);
 
-    if (selectedFile === oldName) {
-      setSelectedFile(newName);
-    }
+    const eventSource = new EventSource(`http://127.0.0.1:5000/run_pipeline?file_path=${encodeURIComponent(uploadedFilePath)}`);
+    eventSourceRef.current = eventSource;
 
-    if (selectedTree === oldName) {
-      setSelectedTree(newName);
-    }
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("SSE 업데이트:", data);
+
+        // 단계별 로그 추가
+        if (data.step && data.name) {
+          setChatHistory(prev => [...prev, { sender: "ai", message: ` [${data.step}] ${data.name}` }]);
+        }
+
+        //  Editor에 단계별 결과 append
+        if (data.content) {
+          setFileContent(prev => prev + "\n\n" + data.content);
+        }
+
+        //  최종 결과 처리
+        if (data.step === 8 || data.final) {
+          setPipelineOutput("✅ 파이프라인 완료");
+          setChatHistory(prev => [...prev, { sender: "ai", message: "🎯 최종 결과가 생성되었습니다." }]);
+          eventSource.close();
+        }
+      } catch (err) {
+        console.error("SSE 데이터 처리 오류:", err);
+      }
+    };
+
+    eventSource.onerror = () => {
+      setChatHistory(prev => [...prev, { sender: "ai", message: "❌ SSE 연결 오류" }]);
+      eventSource.close();
+    };
   };
 
-  const handleSendMessage = () => {
-    if (!chatInput.trim()) return;
-    const userMsg: ChatMessage = { sender: 'user', message: chatInput.trim() };
-    const aiMsg: ChatMessage = { sender: 'ai', message: 'AI 응답 예시입니다.' };
-    setChatHistory((prev) => [...prev, userMsg, aiMsg]);
-    setChatInput('');
-  };
-
-  const selectedFileObj = files.find(f => f.name === selectedFile);
-  const blobUrl = useMemo(() => {
-    if (!selectedFileObj) return '';
-    const blob = new Blob([selectedFileObj.content], { type: 'text/plain' });
-    return URL.createObjectURL(blob);
-  }, [selectedFileObj]);
-
+  // ✅ Cleanup: 컴포넌트 언마운트 시 EventSource 닫기
   useEffect(() => {
     return () => {
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
     };
-  }, [blobUrl]);
-
-  const treeFiles = useMemo(() => {
-    return files.filter((f) => f.name.toLowerCase().endsWith('.tree.json'));
-  }, [files]);
+  }, []);
 
   return (
     <div className="flex flex-col h-screen">
-      <Header
-        onClickGenerate={() => alert('수정 제안')}
-        currentFileUrl={blobUrl}
-        currentFileName={selectedFile}
-      />
+      <Header onClickGenerate={handleRunPipeline} currentFileUrl="" currentFileName={selectedFile} />
 
       <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
         {showSidebar && (
           <div style={{ width: sidebarWidth }} className="bg-gray-100 p-4 overflow-y-auto flex-shrink-0">
             <FileSidebar
               files={files.map(f => f.name)}
-              treeFiles={treeFiles.map(f => f.name)}
-              selected={selectedFile}
-              selectedTree={selectedTree}
-              onSelect={handleSelectFile}
-              onUpload={handleUpload}
-              onDelete={handleDeleteFile}
-              onDeleteTree={handleDeleteTree}
-              onSelectTree={handleSelectTree}
-              onRenameFile={handleRenameFile}
+              treeFiles={[]} selected={selectedFile} selectedTree=""
+              onSelect={() => {}} onUpload={handleUpload} onDelete={() => {}} onDeleteTree={() => {}} onSelectTree={() => {}} onRenameFile={() => {}}
             />
           </div>
         )}
 
-        {showSidebar && (
-          <div
-            className="w-1 bg-gray-300 hover:bg-gray-400 cursor-col-resize"
-            onMouseDown={() => {
-              isResizing.current = true;
-            }}
-          />
-        )}
-
-        <div className="flex flex-col justify-center">
-          <button
-            className="w-5 h-full bg-gray-200 hover:bg-gray-300 text-sm font-bold border-none"
-            onClick={() => setShowSidebar(!showSidebar)}
-          >
-            {showSidebar ? '<' : '>'}
-          </button>
-        </div>
-
         <div className="flex-1 p-4 overflow-y-auto bg-white">
-          <EditorPanel title={selectedFile || selectedTree} content={fileContent} />
-        </div>
-
-        <div className="flex flex-col justify-center">
-          <button
-            className="w-5 h-full bg-gray-200 hover:bg-gray-300 text-sm font-bold border-none"
-            onClick={() => setShowFeedback(!showFeedback)}
-          >
-            {showFeedback ? '>' : '<'}
-          </button>
+          <EditorPanel title={selectedFile} content={fileContent} />
         </div>
 
         {showFeedback && (
@@ -191,7 +147,7 @@ function EditorPage() {
               chatHistory={chatHistory}
               chatInput={chatInput}
               onChatInputChange={(e) => setChatInput(e.target.value)}
-              onSendMessage={handleSendMessage}
+              onSendMessage={() => {}}
             />
           </div>
         )}
