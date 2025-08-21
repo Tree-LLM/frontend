@@ -1,43 +1,81 @@
 export interface HeadingItem {
   id: string;
-  level: number;
-  title: string;
+  level: number; // 여기서는 모두 1로 고정
+  title: string; // Canonical title
 }
 
 export function parseHeadings(text: string): HeadingItem[] {
-  const lines = text.split('\n');
-  const headingRegex = /^(\d+(\.\d+)*\.)?\s*(.+)$/; // 예: 1. Introduction / 1.1 Motivation
+  // 1) 허용 섹션(복수/변형 포함) → 정규화 명칭으로 매핑
+  const ALIASES: Record<string, string> = {
+    abstract: "Abstract",
+    introduction: "Introduction",
+    "relatedwork": "Related Work",
+    "related work": "Related Work",
+    method: "Method",
+    methods: "Method",
+    methodology: "Method",
+    experiment: "Experiment",
+    experiments: "Experiment",
+    "experimentalsetup": "Experiment",
+    discussion: "Discussion",
+    "resultsanddiscussion": "Discussion",
+    conclusion: "Conclusion",
+    conclusions: "Conclusion",
+  };
 
-  return lines
-    .map((line, index) => {
-      const trimmed = line.trim();
+  // 정규화 유틸: 소문자 + 영문/숫자 외 제거 + 공백 축약
+  const norm = (s: string) =>
+    s.toLowerCase().replace(/[^a-z0-9]+/g, "").trim();
 
-      // 'Abstract', 'Introduction' 같은 키워드도 포함
-      if (/^(Abstract|Introduction|Method|Related Work|Experiment|Conclusion|Introduction)$/i.test(trimmed)) {
-        return {
-          id: `heading-${index}`,
+  const lines = text.split(/\r?\n/);
+
+  // 2) 중복 방지 (같은 canonical title 한 번만)
+  const seen = new Set<string>();
+  const out: HeadingItem[] = [];
+
+  // 3) 정규식
+  const bareHeadingRe = /^\s*(Abstract|Introduction|Related\s*Work|Methods?|Methodology|Experiments?|Discussion|Conclusions?)\s*:?\s*$/i;
+  const numberedHeadingRe = /^\s*(\d+(?:\.\d+)*)\s*[\.\)]\s*([A-Za-z][\w\s-]+?)\s*$/;
+
+  lines.forEach((raw, idx) => {
+    const line = raw.trim();
+    if (!line) return;
+
+    // 노이즈 제거
+    if (/^(contents|table of contents)$/i.test(line)) return;
+
+    // (A) 숫자 섹션: "0. Abstract" / "2. Related Work" 등
+    let m = line.match(numberedHeadingRe);
+    if (m) {
+      const titleRaw = m[2].trim();
+      const key = norm(titleRaw);
+      const canonical = ALIASES[key];
+      if (canonical && !seen.has(canonical)) {
+        seen.add(canonical);
+        out.push({
+          id: `heading-${idx}`,
           level: 1,
-          title: trimmed,
-        };
+          title: canonical,
+        });
       }
+      return; // 숫자 패턴이면 여기서 종료
+    }
 
-      // 숫자 기반 섹션 탐지
-      const match = trimmed.match(headingRegex);
-      if (match) {
-        const numberPart = match[1]; // "1.", "1.2.", 등
-        const title = match[3]; // 나머지 제목
-
-        if (numberPart && title) {
-          const level = numberPart.split('.').filter(Boolean).length;
-          return {
-            id: `heading-${index}`,
-            level,
-            title: title.trim(),
-          };
-        }
+    // (B) 텍스트-only 섹션: "Abstract" / "Introduction" 등
+    m = line.match(bareHeadingRe);
+    if (m) {
+      const titleRaw = m[0].replace(/:$/,'').trim();
+      const canonical = ALIASES[norm(titleRaw)];
+      if (canonical && !seen.has(canonical)) {
+        seen.add(canonical);
+        out.push({
+          id: `heading-${idx}`,
+          level: 1,
+          title: canonical,
+        });
       }
+    }
+  });
 
-      return null;
-    })
-    .filter(Boolean) as HeadingItem[];
+  return out;
 }
