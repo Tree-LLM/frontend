@@ -149,12 +149,12 @@ const FileSidebar: React.FC<FileSidebarProps> = ({
   return (
     <div className="h-full bg-gray-100 flex flex-col px-4 py-3 min-h-0">
       {/* 헤더 */}
-      <div className="mb-3">
+      <div className="mb-5">
         <h2 className="text-3xl font-bold text-gray-800">Files</h2>
       </div>
 
       {/* 파일 업로드 */}
-      <div className="mb-2">
+      <div className="mb-5">
         <input
           type="file"
           ref={fileInputRef}
@@ -174,7 +174,7 @@ const FileSidebar: React.FC<FileSidebarProps> = ({
       </div>
 
       {/* 직접 파일 추가 */}
-      <div className="mb-4">
+      <div className="mb-5">
         <button
           onClick={onAddTestFile}
           className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full text-2xl"
