@@ -6,9 +6,9 @@ interface Props {
 
 export default function ContentsTree({ headings, onSelect, selectedId }: Props) {
   return (
-    <div>
-      <h3 className="font-semibold p-2">Contents</h3>
-      <ul>
+    <div className="px-2">
+      <h2 className="font-bold text-2xl md:text-3xl mb-3">Contents</h2>
+      <ul className="text-lg md:text-xl list-none m-0 p-0 space-y-3">
         {headings.map((h) => (
           <li
             key={h.id}

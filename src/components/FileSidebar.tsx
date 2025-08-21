@@ -154,7 +154,7 @@ const FileSidebar: React.FC<FileSidebarProps> = ({
       </div>
 
       {/* 파일 업로드 */}
-      <div className="mb-5">
+      <div className="mb-3">
         <input
           type="file"
           ref={fileInputRef}
@@ -249,7 +249,7 @@ const FileSidebar: React.FC<FileSidebarProps> = ({
             >
               <button
                 onClick={() => onSelectSection?.(file)}
-                className={`flex-1 text-left px-3 py-2 rounded text-lg truncate transition-colors ${
+                className={`flex-1 text-left px-3 py-2 rounded text-xl md:text-2xl truncate transition-colors ${
                   file === selectedSection
                     ? 'bg-amber-200 text-amber-900 font-semibold'
                     : 'hover:bg-gray-200 text-gray-800'
