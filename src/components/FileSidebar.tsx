@@ -24,6 +24,74 @@ type FileSidebarProps = {
   onDeleteSection?: (filename: string) => void;
 };
 
+const DEFAULT_SECTION_ORDER = [
+  'Abstract',
+  'Introduction',
+  'Related Work',
+  'Background',
+  'Methods',
+  'Experiments',
+  'Results',
+  'Discussion',
+  'Conclusion',
+  'Appendix',
+];
+
+const SECTION_KEYWORDS: Record<string, string> = {
+  abstract: 'Abstract',
+  introduction: 'Introduction',
+  intro: 'Introduction',
+  'related work': 'Related Work',
+  related: 'Related Work',
+  background: 'Background',
+  method: 'Methods',
+  methods: 'Methods',
+  methodology: 'Methods',
+  experiment: 'Experiments',
+  experiments: 'Experiments',
+  evaluation: 'Evaluation',
+  eval: 'Evaluation',
+  result: 'Results',
+  results: 'Results',
+  discussion: 'Discussion',
+  conclusion: 'Conclusion',
+  conclusions: 'Conclusions',
+  limitation: 'Limitations',
+  limitations: 'Limitations',
+  appendix: 'Appendix',
+};
+
+// 파일명에서 섹션 표시용 라벨 추출
+function getSectionLabel(file: string): string {
+  const base = file.replace(/\.section\.txt$/i, '');
+  const lower = base.toLowerCase();
+
+  // 1) 키워드가 포함되어 있으면 해당 섹션명으로
+  for (const [k, v] of Object.entries(SECTION_KEYWORDS)) {
+    if (lower.includes(k)) return v;
+  }
+
+  // 2) 끝부분에 구분자 후 섹션명이 오는 패턴: __Name / --Name / - Name / #Name / @Name
+  let m =
+    base.match(/(?:__|--|#|@|-\s)([A-Za-z][A-Za-z0-9 _-]{2,})$/) ||
+    base.match(/\[(.+?)\]$/); // 예: [Introduction]
+  if (m) {
+    return m[1].trim().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
+  }
+
+  // 3) 숫자 인덱스가 있는 경우: __0 / _1 / -2 등
+  m = base.match(/(?:__|_|-)(\d+)\s*$/);
+  if (m) {
+    const idx = parseInt(m[1], 10);
+    if (!Number.isNaN(idx) && idx >= 0 && idx < DEFAULT_SECTION_ORDER.length) {
+      return DEFAULT_SECTION_ORDER[idx];
+    }
+  }
+
+  // 4) 아무 패턴도 못 찾으면 원본 파일명
+  return file;
+}
+
 const FileSidebar: React.FC<FileSidebarProps> = ({
   files,
   treeFiles,
@@ -79,7 +147,7 @@ const FileSidebar: React.FC<FileSidebarProps> = ({
   };
 
   return (
-    <div className="h-full bg-gray-100 flex flex-col px-4 py-3">
+    <div className="h-full bg-gray-100 flex flex-col px-4 py-3 min-h-0">
       {/* 헤더 */}
       <div className="mb-3">
         <h2 className="text-3xl font-bold text-gray-800">Files</h2>
@@ -115,9 +183,9 @@ const FileSidebar: React.FC<FileSidebarProps> = ({
         </button>
       </div>
 
-      {/* 일반 파일 목록 */}
+      {/* 일반 파일 목록 (Files) */}
       <ul
-        className="space-y-1 overflow-y-auto flex-1 min-h-[100px] border border-dashed border-gray-300 p-2 rounded"
+        className="space-y-1 h-[180px] overflow-y-auto border border-dashed border-gray-300 p-2 rounded"
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
@@ -160,10 +228,10 @@ const FileSidebar: React.FC<FileSidebarProps> = ({
       </ul>
 
       {/* Sections 목록 */}
-      <div className="mt-4">
+      <div className="mt-5">
         <h2 className="text-3xl font-bold text-gray-800">Sections</h2>
         <ul
-          className="space-y-1 max-h-64 overflow-y-auto border border-dashed border-amber-400 p-2 rounded min-h-[100px] bg-amber-50"
+          className="space-y-1 h-[400px] overflow-y-auto border border-dashed border-amber-400 p-2 rounded bg-amber-50 mt-3"
           onDragOver={(e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
@@ -188,7 +256,7 @@ const FileSidebar: React.FC<FileSidebarProps> = ({
                 }`}
                 title={file}
               >
-                {file}
+                {getSectionLabel(file)}
               </button>
               <button
                 onClick={() => onDeleteSection?.(file)}
@@ -206,10 +274,10 @@ const FileSidebar: React.FC<FileSidebarProps> = ({
       </div>
 
       {/* Tree 목록 */}
-      <div className="mt-4">
+      <div className="mt-5">
         <h2 className="text-3xl font-bold text-gray-800">Tree</h2>
         <ul
-          className="space-y-1 max-h-40 overflow-y-auto border border-dashed border-purple-400 p-2 rounded min-h-[100px] bg-purple-50"
+          className="space-y-2 h-[180px] overflow-y-auto border border-dashed border-purple-400 p-3 rounded bg-purple-50 mt-3"
           onDragOver={(e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
